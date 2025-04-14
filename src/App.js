@@ -73,6 +73,8 @@ export default class App extends React.Component {
     document.addEventListener('keydown', this.handleKeyDown);
     document.addEventListener('keyup', this.handleKeyUp);
     window.addEventListener('resize', this.handleResize);
+    document.addEventListener('touchstart', this.handleTouchStart, false);
+    document.addEventListener('touchend', this.handleTouchEnd, false);
 
     this.handleResize();
 
@@ -91,11 +93,36 @@ export default class App extends React.Component {
     document.removeEventListener('keydown', this.handleKeyDown);
     document.removeEventListener('keyup', this.handleKeyUp);
     window.removeEventListener('resize', this.handleResize);
+    document.removeEventListener('touchstart', this.handleTouchStart, false);
+    document.removeEventListener('touchend', this.handleTouchEnd, false);
+
     if (this.fallingInterval) {
       clearInterval(this.fallingInterval);
     }
     if (this.keyPressInterval) {
       clearInterval(this.keyPressInterval);
+    }
+  }
+
+  handleTouchStart = (e) => {
+    const touch = e.changedTouches[0];
+    this.startX = touch.pageX;
+    this.startY = touch.pageY;
+  }
+
+  handleTouchEnd = (e) => {
+    const touch = e.changedTouches[0];
+    const distX = touch.pageX - this.startX;
+    const distY = touch.pageY - this.startY;
+
+    if (Math.abs(distX) > this.swipeThreshold && Math.abs(distY) < 100) {
+      if (distX > 0) {
+        this.handleLeftRightDown({ key: "ArrowRight" });
+      } else {
+        this.handleLeftRightDown({ key: "ArrowLeft" });
+      }
+    } else {
+      this.handleKeyUp({ key: "ArrowLeft" });
     }
   }
 
@@ -351,12 +378,8 @@ export default class App extends React.Component {
     } 
   }
 
-  async removeRow() {
+  removeRow() {
     const rowsToBeRemoved = [];
-
-    function sleep(ms) {
-      return new Promise(resolve => setTimeout(resolve, ms));
-    }
 
     //Checks for rows that are full and adds them to the rowsToBeRemoved array
     for (let i = boardHeight; i > 0; i--) {
@@ -387,7 +410,6 @@ export default class App extends React.Component {
             let currentTop = parseInt(block.style.top, 10) || block.offsetTop;
             block.style.top = (currentTop + this.state.blockSize) + 'px';
           }
-          await sleep(200 / boardHeight);
         }
 
         this.setState ((prevState) => ({ score: prevState.score + 100 }))
@@ -502,13 +524,11 @@ export default class App extends React.Component {
             </div>
           </div>) : null}
           <div className="flex h-full justify-center border-[1px] border-white border-solid p-[10px] m-auto rounded-[35px] z-20">
-            {(this.state.isMobile===2) ? (<div className="fixed flex flex-col w-full h-full top-0 m-0 p-0 border-solid border-2 border-red-500 z-50">
-              <div className="flex flex-row h-[80%] z-40">
-                <button className="w-[33%] h-[100%]" onMouseDown={() => this.handleLeftRightDown({ key: "ArrowLeft" })} onMouseUp={() => this.handleKeyUp({ key: "ArrowLeft" })} onTouchStart={() => this.handleLeftRightDown({ key: "ArrowLeft" })} onTouchEnd={() => this.handleKeyUp({ key: "ArrowLeft" })}></button>
-                <button className="w-[33%] h-[100%]" onClick={this.handleUp}></button>
-                <div className="flex flex-col w-[33%] h-[100%]">
-                  <button className="w-[100%] h-[40%]" onClick={this.handleQ}></button>
-                  <button className="w-[100%] h-[60%]" onMouseDown={() => this.handleLeftRightDown({ key: "ArrowRight" })} onMouseUp={() => this.handleKeyUp({ key: "ArrowRight" })} onTouchStart={() => this.handleLeftRightDown({ key: "ArrowRight" })} onTouchEnd={() => this.handleKeyUp({ key: "ArrowRight" })}></button>
+            {(this.state.isMobile===2 && !this.mainMenu && !this.gameOver) ? (<div className="fixed flex flex-col w-full h-full top-0 m-0 p-0 overflow-hidden z-50">
+              <div className="relative flex flex-row h-[80%] z-40">
+                <button className="w-[100%] h-[100%] z-10" onClick={this.handleUp}></button>
+                <div className="absolute flex justify-end w-[100%] h-[100%]">
+                  <button className="w-[50%] h-[50%] z-30" onClick={this.handleQ}></button>
                 </div>
               </div>
 
